@@ -89,12 +89,14 @@ def scalacOptionsVersion(scalaVersion: String): Seq[String] = scalaVersion match
 
 scalacOptions ++= scalacOptionsVersion(scalaVersion.value)
 
-val nimbusJwt  = "com.nimbusds"   % "nimbus-jose-jwt" % "5.4"
-val scalaCheck = "org.scalacheck" %% "scalacheck"     % "1.13.5"
-val scalaTest  = "org.scalatest"  %% "scalatest"      % "3.0.4"
+val nimbusJwt  = "com.nimbusds"         % "nimbus-jose-jwt" % "5.4"
+val scalaCheck = "org.scalacheck"       %% "scalacheck"     % "1.13.5"
+val scalaTest  = "org.scalatest"        %% "scalatest"      % "3.0.4"
+val simulacrum = "com.github.mpilquist" %% "simulacrum"     % "0.12.0"
 
 libraryDependencies ++= Seq(
   nimbusJwt,
+  simulacrum,
   scalaCheck % Test,
   scalaTest  % Test
 )
