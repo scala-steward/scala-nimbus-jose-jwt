@@ -5,16 +5,16 @@ import com.nimbusds.jwt.proc.BadJWTException
 
 final case class JwtToken(content: String) extends AnyVal
 
-sealed abstract class ValidationError(message: String) extends BadJWTException(message)
-case object EmptyJwtTokenContent                       extends ValidationError("Empty JWT token")
-case object InvalidRemoteJwkSet                        extends ValidationError("Cannot retrieve remote JWK set")
-case object InvalidJwtToken                            extends ValidationError("Invalid JWT token")
-case object MissingExpirationClaim                     extends ValidationError("Missing `exp` claim")
-case object InvalidTokenUseClaim                       extends ValidationError("Invalid `token_use` claim")
-case object InvalidTokenIssuerClaim                    extends ValidationError("Invalid `iss` claim")
-case object InvalidTokenSubject                        extends ValidationError("Invalid `sub` claim")
-case object InvalidAudienceClaim                       extends ValidationError("Invalid `aud` claim")
-case class UnknownException(exception: Exception)      extends ValidationError("Unknown JWT validation error")
+sealed abstract class JwtValidationException(message: String) extends BadJWTException(message)
+case object EmptyJwtTokenContent                              extends JwtValidationException("Empty JWT token")
+case object InvalidRemoteJwkSet                               extends JwtValidationException("Cannot retrieve remote JWK set")
+case object InvalidJwtToken                                   extends JwtValidationException("Invalid JWT token")
+case object MissingExpirationClaim                            extends JwtValidationException("Missing `exp` claim")
+case object InvalidTokenUseClaim                              extends JwtValidationException("Invalid `token_use` claim")
+case object InvalidTokenIssuerClaim                           extends JwtValidationException("Invalid `iss` claim")
+case object InvalidTokenSubject                               extends JwtValidationException("Invalid `sub` claim")
+case object InvalidAudienceClaim                              extends JwtValidationException("Invalid `aud` claim")
+case class UnknownException(exception: Exception)             extends JwtValidationException("Unknown JWT validation error")
 
 trait JwtValidator {
   def validate(jwtToken: JwtToken): Either[BadJWTException, (JwtToken, JWTClaimsSet)]

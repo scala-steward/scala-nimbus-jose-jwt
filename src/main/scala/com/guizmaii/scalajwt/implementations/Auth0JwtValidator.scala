@@ -11,11 +11,6 @@ import com.nimbusds.jwt.proc.BadJWTException
 final case class Auth0Domain(value: String)   extends AnyVal
 final case class Auth0Audience(value: String) extends AnyVal
 
-object Auth0JwtValidator {
-  def apply(domain: Auth0Domain, audience: Auth0Audience): Auth0JwtValidator =
-    new Auth0JwtValidator(domain, audience)
-}
-
 /**
   * The additional validations come from the Auth0 documentation:
   *   https://auth0.com/docs/api-auth/tutorials/verify-access-token
@@ -48,26 +43,27 @@ object Auth0JwtValidator {
   *
   * ---------------
   */
-final class Auth0JwtValidator(domain: Auth0Domain, audience: Auth0Audience) extends JwtValidator {
+object Auth0JwtValidator {
+  def apply(domain: Auth0Domain, audience: Auth0Audience): JwtValidator =
+    new JwtValidator {
+      import com.guizmaii.scalajwt.utils.ProvidedValidations._
 
-  import com.guizmaii.scalajwt.utils.ProvidedValidations._
+      private val auth0IdpUrl: String = s"https://${domain.value}"
 
-  private val auth0IdpUrl: String = s"https://${domain.value}"
+      private val jwkSet: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(s"$auth0IdpUrl/.well-known/jwks.json"))
 
-  private val jwkSet: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(s"$auth0IdpUrl/.well-known/jwks.json"))
+      private val configurableJwtValidator =
+        ConfigurableJwtValidator(
+          keySource = jwkSet,
+          additionalValidations = List(
+            requireAudience(audience.value),
+            requireExpirationClaim,
+            requiredIssuerClaim(s"$auth0IdpUrl/"),
+            requiredNonEmptySubject
+          )
+        )
 
-  private val configurableJwtValidator =
-    new ConfigurableJwtValidator(
-      keySource = jwkSet,
-      additionalValidations = List(
-        requireAudience(audience.value),
-        requireExpirationClaim,
-        requiredIssuerClaim(s"$auth0IdpUrl/"),
-        requiredNonEmptySubject
-      )
-    )
-
-  override def validate(jwtToken: JwtToken): Either[BadJWTException, (JwtToken, JWTClaimsSet)] =
-    configurableJwtValidator.validate(jwtToken)
-
+      override def validate(jwtToken: JwtToken): Either[BadJWTException, (JwtToken, JWTClaimsSet)] =
+        configurableJwtValidator.validate(jwtToken)
+    }
 }

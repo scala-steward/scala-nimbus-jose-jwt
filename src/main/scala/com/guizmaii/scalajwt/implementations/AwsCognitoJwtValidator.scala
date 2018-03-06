@@ -11,13 +11,6 @@ import com.nimbusds.jwt.proc.BadJWTException
 final case class S3Region(value: String)          extends AnyVal
 final case class CognitoUserPoolId(value: String) extends AnyVal
 
-object AwsCognitoJwtValidator {
-  def apply(
-      s3Region: S3Region,
-      cognitoUserPoolId: CognitoUserPoolId
-  ): AwsCognitoJwtValidator = new AwsCognitoJwtValidator(s3Region, cognitoUserPoolId)
-}
-
 /**
   * The additional validations come from the AWS Cognito documentation:
   *   https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-using-tokens-with-identity-providers.html#amazon-cognito-identity-user-pools-using-id-and-access-tokens-in-web-api
@@ -64,28 +57,30 @@ object AwsCognitoJwtValidator {
   * You can now trust the claims inside the token and use it as it fits your requirements.
   * ---------------
   */
-final class AwsCognitoJwtValidator(
-    s3Region: S3Region,
-    cognitoUserPoolId: CognitoUserPoolId
-) extends JwtValidator {
+object AwsCognitoJwtValidator {
 
-  import com.guizmaii.scalajwt.utils.ProvidedValidations._
+  def apply(
+      s3Region: S3Region,
+      cognitoUserPoolId: CognitoUserPoolId
+  ): JwtValidator = new JwtValidator {
+    import com.guizmaii.scalajwt.utils.ProvidedValidations._
 
-  private val cognitoIdpUrl = s"https://cognito-idp.${s3Region.value}.amazonaws.com/${cognitoUserPoolId.value}"
+    private val cognitoIdpUrl = s"https://cognito-idp.${s3Region.value}.amazonaws.com/${cognitoUserPoolId.value}"
 
-  private val jwkSet: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(s"$cognitoIdpUrl/.well-known/jwks.json"))
+    private val jwkSet: JWKSource[SecurityContext] = new RemoteJWKSet(new URL(s"$cognitoIdpUrl/.well-known/jwks.json"))
 
-  private val configurableJwtValidator =
-    new ConfigurableJwtValidator(
-      keySource = jwkSet,
-      additionalValidations = List(
-        requireExpirationClaim,
-        requireTokenUseClaim("access"),
-        requiredIssuerClaim(cognitoIdpUrl),
-        requiredNonEmptySubject
+    private val configurableJwtValidator =
+      ConfigurableJwtValidator(
+        keySource = jwkSet,
+        additionalValidations = List(
+          requireExpirationClaim,
+          requireTokenUseClaim("access"),
+          requiredIssuerClaim(cognitoIdpUrl),
+          requiredNonEmptySubject
+        )
       )
-    )
 
-  override def validate(jwtToken: JwtToken): Either[BadJWTException, (JwtToken, JWTClaimsSet)] =
-    configurableJwtValidator.validate(jwtToken)
+    override def validate(jwtToken: JwtToken): Either[BadJWTException, (JwtToken, JWTClaimsSet)] =
+      configurableJwtValidator.validate(jwtToken)
+  }
 }
